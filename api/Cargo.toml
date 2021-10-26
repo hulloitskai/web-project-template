@@ -33,7 +33,6 @@ typed_builder = { package = "typed-builder", version = "^0.9.1" }
 url = { version = "^2.2.2", features = ["serde"] }
 walkdir = "^2.3.2"
 warp = { version = "^0.3.1", default-features = false, features = ["websocket"] }
-warp_graphql = { package = "async-graphql-warp", version = "^2.10.1" }
 yaml = { package = "yaml-rust", version = "^0.4.5" }
 yaml_front_matter = { package = "frontmatter", version = "^0.4.0" }
 
@@ -42,6 +41,10 @@ yaml_front_matter = { package = "frontmatter", version = "^0.4.0" }
 package = "async-graphql"
 version = "^2.10.1"
 features = ["chrono", "url", "apollo_persisted_queries"]
+
+[dependencies.graphql_warp]
+package = "async-graphql-warp"
+version = "^2.10.1"
 
 [dependencies.request]
 package = "reqwest"

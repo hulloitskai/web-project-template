@@ -24,11 +24,6 @@ use warp::reply::with_status as reply_with_status;
 use warp::{get, head, path, serve};
 use warp::{Filter, Rejection, Reply};
 
-use warp_graphql::graphql as warp_graphql;
-use warp_graphql::graphql_subscription as warp_graphql_subscription;
-use warp_graphql::BadRequest as BadWarpGraphQLRequest;
-use warp_graphql::Response as WarpGraphQLResponse;
-
 use graphql::extensions::apollo_persisted_queries as graphql_apq;
 use graphql::http::playground_source as graphql_playground_source;
 use graphql::http::GraphQLPlaygroundConfig;
@@ -37,6 +32,11 @@ use graphql::Response as GraphQLResponse;
 use graphql::{EmptyMutation, EmptySubscription, Schema};
 use graphql_apq::ApolloPersistedQueries as GraphQLAPQExtension;
 use graphql_apq::LruCacheStorage as GraphQLAPQStorage;
+
+use graphql_warp::graphql as warp_graphql;
+use graphql_warp::graphql_subscription as warp_graphql_subscription;
+use graphql_warp::BadRequest as WarpGraphQLBadRequest;
+use graphql_warp::Response as WarpGraphQLResponse;
 
 use mongodb::options::ClientOptions as MongoClientOptions;
 use mongodb::Client as MongoClient;
@@ -52,11 +52,11 @@ use tokio::main as tokio;
 
 #[tokio]
 async fn main() -> Result<()> {
-    // Load environment variables and initialize tracer.
+    // Load environment variables and initialize tracer
     load_env().context("failed to load environment variables")?;
     init_tracer();
 
-    // Read build info.
+    // Read build info
     let build = {
         let timestamp = DateTime::<FixedOffset>::parse_from_rfc3339(env!(
             "BUILD_TIMESTAMP"
@@ -66,7 +66,7 @@ async fn main() -> Result<()> {
         BuildInfo { timestamp, version }
     };
 
-    // Connect to database.
+    // Connect to database
     let database_client = {
         let uri = env_var_or("MONGO_URI", "mongodb://localhost:27017")
             .context("failed to read environment variable MONGO_URI")?;
@@ -96,7 +96,7 @@ async fn main() -> Result<()> {
 
     info!(target: "template-api", "initializing services");
 
-    // Build settings.
+    // Build settings
     let settings = Settings::builder()
         .web_public_url({
             let url = env_var("TEMPLATE_WEB_PUBLIC_URL").context(
@@ -114,7 +114,7 @@ async fn main() -> Result<()> {
         })
         .build();
 
-    // Build services.
+    // Build services
     let services = {
         let config = ServicesConfig::builder()
             .database_client(database_client)
@@ -124,7 +124,7 @@ async fn main() -> Result<()> {
         Services::new(config)
     };
 
-    // Build GraphQL schema.
+    // Build GraphQL schema
     let graphql_schema = {
         let query = Query::new();
         let mutation = EmptyMutation;
@@ -139,7 +139,7 @@ async fn main() -> Result<()> {
             .finish()
     };
 
-    // Build GraphQL filter.
+    // Build GraphQL filter
     let graphql_filter = {
         let graphql = {
             warp_graphql(graphql_schema.clone()).untuple_one().and_then(
@@ -157,7 +157,7 @@ async fn main() -> Result<()> {
             .and(graphql_subscription.or(graphql))
     };
 
-    // Build GraphQL playground filter.
+    // Build GraphQL playground filter
     let graphql_playground_filter = (get().or(head()))
         .map({
             let services = services.clone();
@@ -204,7 +204,7 @@ async fn main() -> Result<()> {
                 .body(source)
         });
 
-    // Build root filter.
+    // Build root filter
     let filter = (path_end().and(graphql_playground_filter))
         .or(graphql_filter)
         .recover(recover);
@@ -229,8 +229,8 @@ async fn recover(rejection: Rejection) -> Result<impl Reply, Infallible> {
     } else if let Some(error) = rejection.find::<ErrorRejection>() {
         let error = error.to_owned();
         (error, StatusCode::INTERNAL_SERVER_ERROR)
-    } else if let Some(error) = rejection.find::<BadWarpGraphQLRequest>() {
-        let BadWarpGraphQLRequest(error) = error;
+    } else if let Some(error) = rejection.find::<WarpGraphQLBadRequest>() {
+        let WarpGraphQLBadRequest(error) = error;
         let error = ErrorRejection::new(error.to_string());
         (error, StatusCode::BAD_REQUEST)
     } else if let Some(error) = rejection.find::<Error>() {
