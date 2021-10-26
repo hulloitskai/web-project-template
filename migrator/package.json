@@ -1,0 +1,24 @@
+{
+  "name": "template-migrator",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "generate": "migrate-mongo create",
+    "status": "migrate-mongo status",
+    "up": "migrate-mongo up",
+    "down": "migrate-mongo down",
+    "format": "prettier --write ."
+  },
+  "volta": {
+    "node": "14.18.1",
+    "yarn": "1.22.17"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "migrate-mongo": "^8.2.3"
+  },
+  "devDependencies": {
+    "prettier": "^2.4.1"
+  }
+}

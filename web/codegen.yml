@@ -1,0 +1,24 @@
+overwrite: true
+schema: http://localhost:3000/graphql
+documents:
+  - ./components/**/*.ts
+  - ./components/**/*.tsx
+  - ./pages/**/*.ts
+  - ./pages/**/*.tsx
+generates:
+  ./apollo/index.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      dedupeFragments: true
+  # ./apollo/pages.tsx:
+  #   plugins:
+  #     - graphql-codegen-apollo-next-ssr
+  ./apollo/helpers.ts:
+    plugins:
+      - typescript-apollo-client-helpers
+  ./apollo/schema.json:
+    plugins:
+      - introspection

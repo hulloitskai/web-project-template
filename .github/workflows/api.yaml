@@ -1,0 +1,62 @@
+name: api
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Generate tags
+        id: generate-tags
+        uses: hulloitskai/generate-docker-tags-action@v0.2.1
+        with:
+          repo: hulloitskai/template-api
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: api
+          push: true
+          tags: ${{ steps.generate-tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore Rust cache
+        uses: actions/cache@v2
+        env:
+          cache-name: rust
+        with:
+          path: ${{ github.workspace }}/api/target
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ env.cache-name }}-${{ hashFiles('api/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ env.cache-name }}
+      - name: Check
+        working-directory: api
+        run: cargo check --all-targets --all-features
+      - name: Lint
+        working-directory: api
+        run: cargo clippy --all-targets --all-features
+      - name: Format
+        working-directory: api
+        run: cargo fmt --all -- --check
