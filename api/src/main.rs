@@ -1,9 +1,10 @@
 use template_api::entities::BuildInfo;
-use template_api::entities::{Context, Services, Settings};
 use template_api::env::load as load_env;
 use template_api::env::var as env_var;
 use template_api::env::var_or as env_var_or;
 use template_api::graph::Query;
+use template_api::services::Config as ServicesConfig;
+use template_api::services::{Services, Settings};
 
 use std::borrow::Cow;
 use std::convert::Infallible;
@@ -56,7 +57,7 @@ async fn main() -> Result<()> {
     init_tracer();
 
     // Read build info.
-    let build_info = {
+    let build = {
         let timestamp = DateTime::<FixedOffset>::parse_from_rfc3339(env!(
             "BUILD_TIMESTAMP"
         ))
@@ -114,14 +115,14 @@ async fn main() -> Result<()> {
         .build();
 
     // Build services.
-    let services = Services::builder()
-        .database_client(database_client)
-        .database(database)
-        .settings(settings)
-        .build();
-
-    // Build entity context.
-    let ctx = Context::new(services);
+    let services = {
+        let config = ServicesConfig::builder()
+            .database_client(database_client)
+            .database(database)
+            .settings(settings)
+            .build();
+        Services::new(config)
+    };
 
     // Build GraphQL schema.
     let graphql_schema = {
@@ -133,8 +134,8 @@ async fn main() -> Result<()> {
                 let storage = GraphQLAPQStorage::new(1024);
                 GraphQLAPQExtension::new(storage)
             })
-            .data(build_info)
-            .data(ctx.clone())
+            .data(build)
+            .data(services.clone())
             .finish()
     };
 
@@ -159,12 +160,12 @@ async fn main() -> Result<()> {
     // Build GraphQL playground filter.
     let graphql_playground_filter = (get().or(head()))
         .map({
-            let ctx = ctx.clone();
-            move |_| ctx.clone()
+            let services = services.clone();
+            move |_| services.clone()
         })
-        .and_then(|ctx: Context| async move {
+        .and_then(|services: Services| async move {
             let endpoint = {
-                let mut endpoint = ctx.settings().api_public_url.clone();
+                let mut endpoint = services.settings().api_public_url.clone();
                 if !matches!(endpoint.scheme(), "http" | "https") {
                     let error = ErrorRejection::new(
                         "invalid GraphQL playground endpoint scheme",

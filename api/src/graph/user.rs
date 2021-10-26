@@ -43,9 +43,11 @@ impl UserQueries {
         ctx: &Context<'_>,
         id: Id<User>,
     ) -> FieldResult<Option<UserObject>> {
+        let services = ctx.services();
+        let ctx = EntityContext::new(services);
         let user = User::get(id.into())
             .optional()
-            .load(ctx.entity())
+            .load(&ctx)
             .await
             .context("failed to load user")
             .into_field_result()?;

@@ -3,6 +3,7 @@
 pub mod entities;
 pub mod env;
 pub mod graph;
+pub mod services;
 
 use async_trait::async_trait;
 use lazy_static::lazy_static;

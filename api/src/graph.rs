@@ -19,10 +19,6 @@ pub use query::*;
 // mod mutation;
 // pub use mutation::*;
 
-use super::*;
-
-use entities::{Context as EntityContext, *};
-
 use entrust::{Comparison, Record, SortingDirection};
 use entrust::{Entity, EntityId};
 
@@ -33,13 +29,14 @@ use graphql::{InputValueError, InputValueResult};
 use graphql::{MergedObject, Object, SimpleObject};
 use graphql::{Scalar, ScalarType};
 
+use super::*;
+
+use entities::{Context as EntityContext, *};
+use services::Services;
+
 #[async_trait]
 pub(super) trait ContextExt {
-    fn entity(&self) -> &EntityContext;
-
-    fn services(&self) -> &Services {
-        self.entity().services()
-    }
+    fn services(&self) -> Services;
 
     async fn transact<F, T, U>(&self, f: F) -> FieldResult<T>
     where
@@ -49,13 +46,16 @@ pub(super) trait ContextExt {
         U: Send,
         U: Future<Output = Result<T>>,
     {
-        self.entity().transact(f).await.into_field_result()
+        let services = self.services();
+        let ctx = EntityContext::new(services);
+        ctx.transact(f).await.into_field_result()
     }
 }
 
 impl<'a> ContextExt for Context<'a> {
-    fn entity(&self) -> &EntityContext {
-        self.data_unchecked()
+    fn services(&self) -> Services {
+        let services = self.data_unchecked::<Services>();
+        services.to_owned()
     }
 }
 
