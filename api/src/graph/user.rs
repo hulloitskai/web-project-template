@@ -12,15 +12,14 @@ impl UserObject {
     }
 
     async fn created_at(&self) -> DateTimeScalar {
-        let created_at = self.record.created_at();
-        created_at.into()
+        self.record.created_at().into()
     }
 
     async fn updated_at(&self) -> DateTimeScalar {
         self.record.updated_at().into()
     }
 
-    async fn name(&self) -> &String {
+    async fn name(&self) -> &str {
         &self.record.name
     }
 
@@ -34,10 +33,10 @@ impl UserObject {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(super) struct UserQueries;
+pub(super) struct UserQuery;
 
 #[Object]
-impl UserQueries {
+impl UserQuery {
     async fn user(
         &self,
         ctx: &Context<'_>,
@@ -45,6 +44,7 @@ impl UserQueries {
     ) -> FieldResult<Option<UserObject>> {
         let services = ctx.services();
         let ctx = EntityContext::new(services);
+
         let user = User::get(id.into())
             .optional()
             .load(&ctx)

@@ -1,11 +1,11 @@
 use super::*;
 
 #[derive(Debug, Clone, Copy, MergedObject)]
-pub struct Query(BuildQueries, UserQueries);
+pub struct Query(BuildQuery, UserQuery);
 
 impl Query {
     pub fn new() -> Self {
-        Self(BuildQueries, UserQueries)
+        Self(BuildQuery, UserQuery)
     }
 }
 

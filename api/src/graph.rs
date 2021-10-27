@@ -1,3 +1,9 @@
+mod query;
+pub use query::*;
+
+// mod mutation;
+// pub use mutation::*;
+
 mod build;
 use build::*;
 
@@ -7,27 +13,26 @@ use build::*;
 mod date_time;
 use date_time::*;
 
-mod user;
-use user::*;
-
 mod id;
 use id::*;
 
-mod query;
-pub use query::*;
-
-// mod mutation;
-// pub use mutation::*;
+mod user;
+use user::*;
 
 use entrust::{Comparison, Record, SortingDirection};
 use entrust::{Entity, EntityId};
 
 use graphql::scalar;
+use graphql::SimpleObject;
 use graphql::Value;
 use graphql::{Context, FieldError, FieldResult};
+use graphql::{InputObject, InputObjectType};
 use graphql::{InputValueError, InputValueResult};
-use graphql::{MergedObject, Object, SimpleObject};
+use graphql::{Interface, InterfaceType};
+use graphql::{MergedObject, Object, ObjectType};
+use graphql::{MergedSubscription, Subscription, SubscriptionType};
 use graphql::{Scalar, ScalarType};
+use graphql::{Union, UnionType};
 
 use super::*;
 

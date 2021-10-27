@@ -30,6 +30,7 @@ use graphql::http::GraphQLPlaygroundConfig;
 use graphql::Request as GraphQLRequest;
 use graphql::Response as GraphQLResponse;
 use graphql::{EmptyMutation, EmptySubscription, Schema};
+
 use graphql_apq::ApolloPersistedQueries as GraphQLAPQExtension;
 use graphql_apq::LruCacheStorage as GraphQLAPQStorage;
 
