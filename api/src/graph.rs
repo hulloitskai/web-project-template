@@ -23,9 +23,11 @@ use entrust::{Comparison, Record, SortingDirection};
 use entrust::{Entity, EntityId};
 
 use graphql::scalar;
+use graphql::Context;
 use graphql::SimpleObject;
 use graphql::Value;
-use graphql::{Context, FieldError, FieldResult};
+use graphql::{Enum, EnumType};
+use graphql::{FieldError, FieldResult};
 use graphql::{InputObject, InputObjectType};
 use graphql::{InputValueError, InputValueResult};
 use graphql::{Interface, InterfaceType};

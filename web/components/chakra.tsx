@@ -70,15 +70,37 @@ export const ChakraTheme = extendTheme({
     }),
   },
   components: {
+    Button: {
+      variants: {
+        solid: (props: Record<string, any>) => {
+          const { colorScheme } = props;
+          if (colorScheme === "black") {
+            const bg = mode("black", "white")(props);
+            return {
+              bg,
+              _hover: {
+                bg: mode("gray.700", "gray.100")(props),
+                _disabled: { bg },
+              },
+              _active: {
+                bg: mode("gray.600", "gray.200")(props),
+              },
+            };
+          }
+        },
+      },
+    },
     Form: {
       baseStyle: {
         helperText: {
           mt: 1,
+          color: "gray.400",
         },
       },
     },
     FormLabel: {
       baseStyle: {
+        color: "gray.500",
         mb: 1,
       },
     },
@@ -87,6 +109,16 @@ export const ChakraTheme = extendTheme({
         text: {
           mt: 1,
         },
+      },
+    },
+    Input: {
+      defaultProps: {
+        focusBorderColor: "gray.400",
+      },
+    },
+    Textarea: {
+      defaultProps: {
+        focusBorderColor: "gray.400",
       },
     },
   },

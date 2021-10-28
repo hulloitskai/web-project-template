@@ -20,9 +20,8 @@ futures = { package = "futures-core", version = "^0.3.17" }
 futures_util = { package = "futures-util", version = "^0.3.17" }
 http = "^0.2.5"
 lazy_static = "^1.4.0"
-moka = { version = "^0.6.1", features = ["future"] }
+# moka = { version = "^0.6.1", features = ["future"] }
 mongodb = { version = "^2.0.1", features = ["bson-chrono-0_4"] }
-oauth2 = "^4.1.0"
 phones = { package = "phonenumber", version = "^0.3.1" }
 regex = { version = "^1.5.4" }
 serde = { version = "^1.0.130", features = ["derive"] }
@@ -31,10 +30,7 @@ tokio = { version = "^1.12.0", features = ["rt-multi-thread", "macros"] }
 tracing = "^0.1.28"
 typed_builder = { package = "typed-builder", version = "^0.9.1" }
 url = { version = "^2.2.2", features = ["serde"] }
-walkdir = "^2.3.2"
 warp = { version = "^0.3.1", default-features = false, features = ["websocket"] }
-yaml = { package = "yaml-rust", version = "^0.4.5" }
-yaml_front_matter = { package = "frontmatter", version = "^0.4.0" }
 
 
 [dependencies.graphql]

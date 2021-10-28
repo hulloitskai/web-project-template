@@ -51,7 +51,7 @@ App.getInitialProps = async (
         </ApolloProviderSSR>,
       );
     } catch (error) {
-      console.error(`Error while pre-fetching queries: ${error}`);
+      console.error(`template-web: error while pre-fetching queries: ${error}`);
     }
     const apolloState = client.extract();
 

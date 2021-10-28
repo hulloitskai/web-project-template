@@ -10,7 +10,6 @@ use lazy_static::lazy_static;
 
 use delegate::delegate;
 use derivative::Derivative;
-use moka::future::{Cache, CacheBuilder};
 use regex::Regex;
 use typed_builder::TypedBuilder as Builder;
 use url::Url;

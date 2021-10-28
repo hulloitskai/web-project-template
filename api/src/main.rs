@@ -8,14 +8,17 @@ use template_api::services::{Services, Settings};
 
 use std::borrow::Cow;
 use std::convert::Infallible;
+use std::env::VarError as EnvVarError;
 use std::net::SocketAddr;
 
 use anyhow::Context as AnyhowContext;
 use anyhow::Result;
 
 use http::header::CONTENT_TYPE;
+use http::Method;
 use http::{Response, StatusCode};
 
+use warp::cors;
 use warp::path::end as path_end;
 use warp::reject::custom as rejection;
 use warp::reject::Reject;
@@ -208,6 +211,28 @@ async fn main() -> Result<()> {
     // Build root filter
     let filter = (path_end().and(graphql_playground_filter))
         .or(graphql_filter)
+        .with({
+            let cors =
+                cors().allow_method(Method::POST).allow_header(CONTENT_TYPE);
+            let cors = match env_var("TEMPLATE_API_CORS_ALLOW_ORIGIN") {
+                Ok(origin) => {
+                    println!("origin from env: {}", &origin);
+                    if origin == "*" {
+                        cors.allow_any_origin()
+                    } else {
+                        cors.allow_origins(origin.split(','))
+                    }
+                }
+                Err(EnvVarError::NotPresent) => cors,
+                Err(error) => {
+                    return Err(error).context(
+                        "invalid environment variable \
+                        TEMPLATE_API_CORS_ALLOW_ORIGIN",
+                    )
+                }
+            };
+            cors
+        })
         .recover(recover);
 
     let host = env_var_or("TEMPLATE_API_HOST", "0.0.0.0")
