@@ -13,9 +13,8 @@ generates:
       - typescript-react-apollo
     config:
       dedupeFragments: true
-  # ./apollo/pages.tsx:
-  #   plugins:
-  #     - graphql-codegen-apollo-next-ssr
+      defaultScalarType: string
+      fragmentVariableSuffix: Document
   ./apollo/helpers.ts:
     plugins:
       - typescript-apollo-client-helpers

@@ -17,7 +17,7 @@ export type Scalars = {
    *
    * The input/output is a string in RFC3339 format.
    */
-  DateTime: any;
+  DateTime: string;
 };
 
 export type BuildInfo = {
@@ -50,7 +50,7 @@ export type User = {
 export type HomePageQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type HomePageQuery = { __typename?: 'Query', buildInfo: { __typename?: 'BuildInfo', timestamp: any, version: string } };
+export type HomePageQuery = { __typename?: 'Query', buildInfo: { __typename?: 'BuildInfo', timestamp: string, version: string } };
 
 
 export const HomePageDocument = gql`
