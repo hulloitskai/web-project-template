@@ -20,7 +20,6 @@ futures = { package = "futures-core", version = "^0.3.17" }
 futures_util = { package = "futures-util", version = "^0.3.17" }
 http = "^0.2.5"
 lazy_static = "^1.4.0"
-# moka = { version = "^0.6.1", features = ["future"] }
 mongodb = { version = "^2.0.1", features = ["bson-chrono-0_4"] }
 phones = { package = "phonenumber", version = "^0.3.1" }
 regex = { version = "^1.5.4" }
@@ -47,6 +46,23 @@ package = "reqwest"
 version = "^0.11.4"
 default-features = false
 features = ["json", "rustls-tls"]
+
+[dependencies.sentry]
+version = "^0.23.0"
+default-features = false
+features = [
+  "backtrace",
+  "contexts",
+  "panic",
+  "tracing",
+  "reqwest",
+  "rustls",
+  "anyhow",
+]
+
+[dependencies.sentry_tracing]
+package = "sentry-tracing"
+version = "^0.23.0"
 
 [dependencies.tracing_subscriber]
 package = "tracing-subscriber"

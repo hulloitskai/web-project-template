@@ -1,6 +1,12 @@
 # Builder:
 FROM node:14-alpine3.13 AS builder
 
+# Configure args
+ARG SENTRY_URL=https://sentry.io/
+ARG SENTRY_ORG=
+ARG SENTRY_PROJECT=
+ARG SENTRY_AUTH_TOKEN
+
 # Install dependencies
 WORKDIR /workspace/web
 COPY package.json yarn.lock ./
@@ -31,10 +37,12 @@ RUN addgroup -g 1001 -S docker && \
     chown -R docker:docker /app/.next
 USER docker
 
-# Run web
+# Run runtime env
 ENV NODE_ENV=production
 ENV TEMPLATE_WEB_HOST=0.0.0.0
 ENV TEMPLATE_WEB_PORT=8000
+
+# Run web
 EXPOSE $TEMPLATE_WEB_PORT
 ENTRYPOINT ["yarn"]
 CMD ["start"]

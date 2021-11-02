@@ -5,23 +5,27 @@ import merge from "deepmerge";
 import { useToast } from "components/toast";
 
 import { ApolloClient as Client } from "@apollo/client";
-import { ApolloLink } from "@apollo/client";
 import { ApolloProvider as Provider } from "@apollo/client";
-import { ApolloError } from "@apollo/client";
-import { ServerError } from "@apollo/client";
+import { ApolloError, ServerError } from "@apollo/client";
 import { getApolloContext } from "@apollo/client";
 
-import { HttpLink, split } from "@apollo/client";
-import { WebSocketLink } from "@apollo/client/link/ws";
+import { HttpLink } from "@apollo/client";
+import { RetryLink } from "@apollo/client/link/retry";
+import { SentryLink } from "apollo-link-sentry";
+import { WebSocketLink as WsLink } from "@apollo/client/link/ws";
+import { split as splitLinks } from "@apollo/client";
+import { from as mergeLinks } from "@apollo/client";
+import type { ApolloLink } from "@apollo/client";
+
 import { getMainDefinition } from "@apollo/client/utilities";
 import { InMemoryCache, NormalizedCacheObject } from "@apollo/client";
 import { TypedTypePolicies as TypePolicies } from "apollo/helpers";
 
-import { TEMPLATE_API_URL, TEMPLATE_API_PUBLIC_URL } from "consts";
+import { TEMPLATE_API_PUBLIC_URL, TEMPLATE_API_URL } from "consts";
 
 const typePolicies: TypePolicies = {};
 
-const createLink = (): ApolloLink => {
+const createTerminatingLink = (): ApolloLink => {
   const httpLink = new HttpLink({
     uri:
       typeof window !== "undefined"
@@ -32,7 +36,7 @@ const createLink = (): ApolloLink => {
     return httpLink;
   }
 
-  const wsLink = new WebSocketLink({
+  const wsLink = new WsLink({
     uri: (() => {
       const { protocol, host, pathname } = new URL(TEMPLATE_API_PUBLIC_URL);
       const path = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
@@ -49,8 +53,7 @@ const createLink = (): ApolloLink => {
       reconnect: true,
     },
   });
-
-  return split(
+  return splitLinks(
     ({ query }) => {
       const definition = getMainDefinition(query);
       return (
@@ -66,10 +69,12 @@ const createLink = (): ApolloLink => {
 const createApolloClient = (): Client<NormalizedCacheObject> => {
   return new Client({
     ssrMode: typeof window === "undefined",
-    link: createLink(),
-    cache: new InMemoryCache({
-      typePolicies,
-    }),
+    link: mergeLinks([
+      new RetryLink(),
+      new SentryLink(),
+      createTerminatingLink(),
+    ]),
+    cache: new InMemoryCache({ typePolicies }),
   });
 };
 
