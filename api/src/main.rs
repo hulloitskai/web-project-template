@@ -161,19 +161,31 @@ async fn main() -> Result<()> {
 
     // Build settings
     let settings = Settings::builder()
+        .web_url({
+            let url = env_var("JUSTCHAT_WEB_URL").context(
+                "failed to read environment variable JUSTCHAT_WEB_URL",
+            )?;
+            url.parse().context("failed to parse justchat-web URL")?
+        })
         .web_public_url({
-            let url = env_var("TEMPLATE_WEB_PUBLIC_URL").context(
-                "failed to read environment variable TEMPLATE_WEB_PUBLIC_URL",
+            let url = env_var("JUSTCHAT_WEB_PUBLIC_URL").context(
+                "failed to read environment variable JUSTCHAT_WEB_PUBLIC_URL",
             )?;
             url.parse()
-                .context("failed to parse template-web public URL")?
+                .context("failed to parse justchat-web public URL")?
+        })
+        .api_url({
+            let url = env_var("JUSTCHAT_API_URL").context(
+                "failed to read environment variable JUSTCHAT_API_URL",
+            )?;
+            url.parse().context("failed to parse justchat-api URL")?
         })
         .api_public_url({
-            let url = env_var("TEMPLATE_API_PUBLIC_URL").context(
-                "failed to read environment variable TEMPLATE_API_PUBLIC_URL",
+            let url = env_var("JUSTCHAT_API_PUBLIC_URL").context(
+                "failed to read environment variable JUSTCHAT_API_PUBLIC_URL",
             )?;
             url.parse()
-                .context("failed to parse template-api public URL")?
+                .context("failed to parse justchat-api public URL")?
         })
         .build();
 
@@ -182,7 +194,7 @@ async fn main() -> Result<()> {
         let config = ServicesConfig::builder()
             .database_client(database_client)
             .database(database)
-            .settings(settings)
+            .settings(settings.clone())
             .build();
         Services::new(config)
     };
@@ -207,32 +219,55 @@ async fn main() -> Result<()> {
     let graphql_playground_extension =
         GraphQLPlaygroundExtension::new(&services)
             .context("failed to initialize GraphQL playground")?;
-    let graphql_layer = {
-        let cors = CorsLayer::new()
-            .allow_methods(vec![Method::GET, Method::POST])
-            .allow_headers(vec![CONTENT_TYPE]);
-        let cors = match env_var("TEMPLATE_API_CORS_ALLOW_ORIGIN") {
-            Ok(origin) => {
-                let origin: CorsAnyOr<CorsOrigin> = if origin == "*" {
-                    CorsAny.into()
-                } else {
-                    let origins = origin
-                        .split(',')
-                        .map(HeaderValue::from_str)
-                        .collect::<Result<Vec<_>, InvalidHeaderValue>>()
-                        .context("failed to parse CORS origin")?;
-                    let list = CorsOrigin::list(origins);
-                    list.into()
-                };
-                cors.allow_origin(origin)
+    let graphql_layer = CorsLayer::new()
+        .allow_methods(vec![Method::GET, Method::POST])
+        .allow_headers(vec![CONTENT_TYPE])
+        .allow_origin({
+            match env_var("JUSTCHAT_API_CORS_ALLOW_ORIGIN") {
+                Ok(origin) => {
+                    let origin: CorsAnyOr<CorsOrigin> = if origin == "*" {
+                        CorsAny.into()
+                    } else {
+                        let origins = origin
+                            .split(',')
+                            .map(HeaderValue::from_str)
+                            .collect::<Result<Vec<_>, InvalidHeaderValue>>()
+                            .context("failed to parse CORS origin")?;
+                        let list = CorsOrigin::list(origins);
+                        list.into()
+                    };
+                    origin
+                }
+                Err(EnvVarError::NotPresent) => {
+                    let Settings {
+                        web_url,
+                        web_public_url,
+                        api_url,
+                        api_public_url,
+                        ..
+                    } = &settings;
+                    let origins =
+                        [web_url, web_public_url, api_url, api_public_url]
+                            .into_iter()
+                            .map(|url| {
+                                let mut url = url.to_owned();
+                                url.set_path("");
+                                let mut url = url.to_string();
+                                url.pop();
+                                HeaderValue::from_str(&url)
+                            })
+                            .collect::<Result<Vec<_>, InvalidHeaderValue>>()
+                            .context("failed to parse CORS origin")?;
+                    CorsOrigin::list(origins).into()
+                }
+                Err(error) => {
+                    return Err(error).context(
+                        "invalid environment variable \
+                            JUSTCHAT_API_CORS_ALLOW_ORIGIN",
+                    )
+                }
             }
-            Err(EnvVarError::NotPresent) => cors,
-            Err(error) => return Err(error).context(
-                "invalid environment variable TEMPLATE_API_CORS_ALLOW_ORIGIN",
-            ),
-        };
-        cors
-    };
+        });
 
     // Build routes
     let routes = Router::<Body>::new()
