@@ -1,8 +1,11 @@
 mod query;
 pub use query::*;
 
-// mod mutation;
-// pub use mutation::*;
+mod mutation;
+pub use mutation::*;
+
+mod subscription;
+pub use subscription::*;
 
 mod build;
 use build::*;

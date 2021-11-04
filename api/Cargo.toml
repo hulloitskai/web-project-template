@@ -23,23 +23,30 @@ lazy_static = "^1.4.0"
 mongodb = { version = "^2.0.1", features = ["bson-chrono-0_4"] }
 phones = { package = "phonenumber", version = "^0.3.1" }
 regex = { version = "^1.5.4" }
+sentry_tracing = { package = "sentry-tracing", version = "^0.23.0 "}
 serde = { version = "^1.0.130", features = ["derive"] }
 serde_json = "^1.0.68"
 tokio = { version = "^1.12.0", features = ["rt-multi-thread", "macros"] }
+tower = "^0.4.10"
 tracing = "^0.1.28"
 typed_builder = { package = "typed-builder", version = "^0.9.1" }
 url = { version = "^2.2.2", features = ["serde"] }
-warp = { version = "^0.3.1", default-features = false, features = ["websocket"] }
 
+[dependencies.axum]
+version = "^0.3.0"
+default-features = false
+features = ["http2", "ws", "headers", "json"]
 
 [dependencies.graphql]
 package = "async-graphql"
-version = "^2.10.1"
-features = ["chrono", "url", "apollo_persisted_queries"]
+features = ["tracing", "chrono", "url", "apollo_persisted_queries"]
+git = "https://github.com/hulloitskai/async-graphql"
+rev = "2f9b352"
 
-[dependencies.graphql_warp]
-package = "async-graphql-warp"
-version = "^2.10.1"
+[dependencies.graphql_axum]
+package = "async-graphql-axum"
+git = "https://github.com/hulloitskai/async-graphql"
+rev = "2f9b352"
 
 [dependencies.request]
 package = "reqwest"
@@ -60,9 +67,11 @@ features = [
   "anyhow",
 ]
 
-[dependencies.sentry_tracing]
-package = "sentry-tracing"
-version = "^0.23.0"
+[dependencies.tower_http]
+package = "tower-http"
+features = ["trace", "cors"]
+git = "https://github.com/tower-rs/tower-http"
+branch = "cors"
 
 [dependencies.tracing_subscriber]
 package = "tracing-subscriber"

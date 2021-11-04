@@ -28,11 +28,11 @@ pub fn load() -> Result<()> {
         }
     }
 
-    // Configure logging.
-    let log = var_or("TEMPLATE_API_LOG", "warn,template-api=info").unwrap();
+    // Configure logging
+    let log = var_or("TEMPLATE_API_LOG", "warn,template_api=info").unwrap();
     set_env_var("RUST_LOG", log);
 
-    // Configure backtraces.
+    // Configure backtraces
     remove_env_var("RUST_BACKTRACE");
     if None == var("TEMPLATE_API_BACKTRACE").ok() {
         set_env_var("RUST_BACKTRACE", "1")
