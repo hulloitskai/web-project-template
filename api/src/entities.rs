@@ -21,7 +21,7 @@ use entrust::{FindOneQuery, FindQuery, MaybeFindOneQuery};
 use entrust::{Object, ObjectId};
 
 use ::bson::DateTime as BsonDateTime;
-use ::bson::{doc, from_document, to_document};
+use ::bson::{bson, doc, from_document, to_document};
 use ::bson::{Bson, Document};
 
 use super::*;

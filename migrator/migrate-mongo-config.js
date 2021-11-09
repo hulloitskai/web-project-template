@@ -6,7 +6,7 @@ const { MONGO_URI, MONGO_DATABASE } = process.env;
 const config = {
   mongodb: {
     url: MONGO_URI || "mongodb://localhost:27017",
-    databaseName: MONGO_DATABASE || "home",
+    databaseName: MONGO_DATABASE || "template",
     options: {
       useNewUrlParser: true, // removes a deprecation warning when connecting
       useUnifiedTopology: true, // removes a deprecating warning when connecting
@@ -15,7 +15,7 @@ const config = {
     },
   },
   migrationsDir: "migrations",
-  changelogCollectionName: "Changelog",
+  changelogCollectionName: "_changelog",
   migrationFileExtension: ".js",
   useFileHash: false,
 };
