@@ -42,12 +42,11 @@ use futures::Future;
 use futures_util::future::try_join_all;
 use futures_util::stream::TryStreamExt;
 
-use chrono::DateTime as GenericDateTime;
 use chrono::NaiveDate as Date;
 use chrono::NaiveTime as Time;
 use chrono::{Duration, FixedOffset, TimeZone, Utc};
 
-type DateTime<Tz = Utc> = GenericDateTime<Tz>;
+type DateTime<Tz = Utc> = chrono::DateTime<Tz>;
 
 use async_trait::async_trait;
 use delegate::delegate;

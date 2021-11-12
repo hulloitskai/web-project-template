@@ -22,6 +22,11 @@ use id::*;
 mod user;
 use user::*;
 
+use super::*;
+
+use entities::{Context as EntityContext, *};
+use services::Services;
+
 use entrust::{Comparison, Record, SortingDirection};
 use entrust::{Entity, EntityId};
 
@@ -38,11 +43,6 @@ use graphql::{MergedObject, Object, ObjectType};
 use graphql::{MergedSubscription, Subscription, SubscriptionType};
 use graphql::{Scalar, ScalarType};
 use graphql::{Union, UnionType};
-
-use super::*;
-
-use entities::{Context as EntityContext, *};
-use services::Services;
 
 #[async_trait]
 pub(super) trait ContextExt {
