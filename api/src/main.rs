@@ -3,6 +3,10 @@ use template_api::env::load as load_env;
 use template_api::env::var as env_var;
 use template_api::env::var_or as env_var_or;
 use template_api::graph::{Mutation, Query, Subscription};
+use template_api::handlers::graphql_handler;
+use template_api::handlers::graphql_playground_handler;
+use template_api::handlers::GraphQLExtension;
+use template_api::handlers::GraphQLPlaygroundExtension;
 use template_api::services::Config as ServicesConfig;
 use template_api::services::{Services, Settings};
 use template_api::util::default;
@@ -10,52 +14,36 @@ use template_api::util::default;
 use std::env::VarError as EnvVarError;
 use std::net::SocketAddr;
 
-use anyhow::bail;
 use anyhow::Context as AnyhowContext;
 use anyhow::Result;
 
 use http::header::CONTENT_TYPE;
 use http::header::{HeaderValue, InvalidHeaderValue};
-use http::{Method, Response, StatusCode};
+use http::Method;
 
 use tower::ServiceBuilder;
-use tower_http::cors::Any as CorsAny;
+use tower_http::cors::any as cors_any;
 use tower_http::cors::AnyOr as CorsAnyOr;
 use tower_http::cors::CorsLayer;
 use tower_http::cors::Origin as CorsOrigin;
 use tower_http::trace::TraceLayer;
 
-use axum::body::box_body;
 use axum::body::Body;
-use axum::extract::ws::WebSocketUpgrade;
-use axum::extract::Extension;
-use axum::extract::TypedHeader as HeaderExtractor;
 use axum::handler::Handler;
-use axum::response::Html as HtmlResponse;
-use axum::response::IntoResponse;
 use axum::routing::on;
 use axum::routing::MethodFilter;
 use axum::{AddExtensionLayer, Router, Server};
 
 use graphql::extensions::apollo_persisted_queries as graphql_apq;
-use graphql::http::playground_source as graphql_playground_source;
-use graphql::http::GraphQLPlaygroundConfig;
-use graphql::http::ALL_WEBSOCKET_PROTOCOLS as GRAPHQL_WEBSOCKET_PROTOCOLS;
 use graphql::Schema as GraphQLSchema;
-use graphql::ServerError as GraphQLError;
 
 use graphql_apq::ApolloPersistedQueries as GraphQLAPQExtension;
 use graphql_apq::LruCacheStorage as GraphQLAPQStorage;
 
-use graphql_axum::graphql_subscription;
-use graphql_axum::GraphQLRequest;
-use graphql_axum::GraphQLResponse;
-use graphql_axum::SecWebsocketProtocol as WebSocketProtocol;
-
 use mongodb::options::ClientOptions as MongoClientOptions;
 use mongodb::Client as MongoClient;
 
-use tracing::{debug, error, info, trace};
+use tracing::{debug, info};
 use tracing_subscriber::fmt::layer as fmt_tracing_layer;
 use tracing_subscriber::layer::SubscriberExt as TracingSubscriberLayerExt;
 use tracing_subscriber::registry as tracing_registry;
@@ -69,9 +57,7 @@ use sentry_tracing::layer as sentry_tracing_layer;
 
 use bson::doc;
 use chrono::{DateTime, FixedOffset};
-use serde_json::to_string as to_json_string;
 use tokio::main as tokio;
-use url::Url;
 
 #[tokio]
 async fn main() -> Result<()> {
@@ -201,7 +187,7 @@ async fn main() -> Result<()> {
 
     // Build GraphQL schema
     let graphql_schema = {
-        let query = Query::new();
+        let query = Query::default();
         let mutation = Mutation::default();
         let subscription = Subscription::default();
         GraphQLSchema::build(query, mutation, subscription)
@@ -226,7 +212,7 @@ async fn main() -> Result<()> {
             match env_var("JUSTCHAT_API_CORS_ALLOW_ORIGIN") {
                 Ok(origin) => {
                     let origin: CorsAnyOr<CorsOrigin> = if origin == "*" {
-                        CorsAny.into()
+                        cors_any().into()
                     } else {
                         let origins = origin
                             .split(',')
@@ -314,166 +300,3 @@ async fn main() -> Result<()> {
         .context("failed to serve routes")?;
     Ok(())
 }
-
-#[derive(Clone)]
-struct GraphQLExtension {
-    schema: GraphQLSchema<Query, Mutation, Subscription>,
-}
-
-impl GraphQLExtension {
-    fn new(schema: &GraphQLSchema<Query, Mutation, Subscription>) -> Self {
-        GraphQLExtension {
-            schema: schema.to_owned(),
-        }
-    }
-}
-
-async fn graphql_handler(
-    Extension(extension): Extension<GraphQLExtension>,
-    request: Option<GraphQLRequest>,
-    websocket: Option<WebSocketUpgrade>,
-    websocket_protocol: Option<HeaderExtractor<WebSocketProtocol>>,
-) -> impl IntoResponse {
-    let GraphQLExtension { schema } = extension;
-    if let (Some(websocket), Some(HeaderExtractor(protocol))) =
-        (websocket, websocket_protocol)
-    {
-        let response = websocket
-            .protocols(GRAPHQL_WEBSOCKET_PROTOCOLS)
-            .on_upgrade(move |websocket| async move {
-                trace!("received WebSocket connection");
-                graphql_subscription(websocket, schema, protocol).await
-            })
-            .into_response();
-        let (head, body) = response.into_parts();
-        return Response::from_parts(head, box_body(body));
-    }
-    if let Some(GraphQLRequest(request)) = request {
-        let response = schema.execute(request).await;
-        response
-            .errors
-            .iter()
-            .for_each(|error| match error.message.as_str() {
-                "PersistedQueryNotFound" => (),
-                _ => {
-                    let GraphQLError {
-                        message,
-                        locations,
-                        path,
-                        ..
-                    } = error;
-                    let locations = {
-                        let locations = locations
-                            .iter()
-                            .map(ToString::to_string)
-                            .collect::<Vec<_>>();
-                        to_json_string(&locations).unwrap()
-                    };
-                    let path = to_json_string(path).unwrap();
-                    error!(
-                        target: "template_api::graphql",
-                        %locations,
-                        %path,
-                        "{}", message,
-                    );
-                }
-            });
-        let response = GraphQLResponse::from(response).into_response();
-        let (head, body) = response.into_parts();
-        return Response::from_parts(head, box_body(body));
-    }
-    {
-        let response = StatusCode::BAD_REQUEST.into_response();
-        let (head, body) = response.into_parts();
-        Response::from_parts(head, box_body(body))
-    }
-}
-
-#[derive(Clone)]
-struct GraphQLPlaygroundExtension {
-    endpoint: Url,
-    subscription_endpoint: Url,
-}
-
-impl GraphQLPlaygroundExtension {
-    fn new(services: &Services) -> Result<Self> {
-        let endpoint = {
-            let mut endpoint = services.settings().api_public_url.clone();
-            if !matches!(endpoint.scheme(), "http" | "https") {
-                bail!("invalid GraphQL playground endpoint scheme");
-            }
-            let path = endpoint.path();
-            if !path.ends_with('/') {
-                let path = path.to_owned() + "/";
-                endpoint.set_path(&path);
-            }
-            endpoint.join("graphql").unwrap()
-        };
-
-        let subscription_endpoint = {
-            let mut endpoint = endpoint.clone();
-            let scheme = match endpoint.scheme() {
-                "http" => "ws",
-                "https" => "wss",
-                _ => {
-                    panic!("invalid GraphQL playground endpoint scheme")
-                }
-            };
-            endpoint.set_scheme(scheme).unwrap();
-            endpoint
-        };
-
-        let extension = GraphQLPlaygroundExtension {
-            endpoint,
-            subscription_endpoint,
-        };
-        Ok(extension)
-    }
-}
-
-impl GraphQLPlaygroundExtension {
-    fn config(&self) -> GraphQLPlaygroundConfig {
-        let GraphQLPlaygroundExtension {
-            endpoint,
-            subscription_endpoint,
-        } = self;
-        GraphQLPlaygroundConfig::new(endpoint.as_str())
-            .subscription_endpoint(subscription_endpoint.as_str())
-    }
-}
-
-async fn graphql_playground_handler(
-    Extension(extension): Extension<GraphQLPlaygroundExtension>,
-) -> impl IntoResponse {
-    let config = extension.config();
-    let source = graphql_playground_source(config);
-    HtmlResponse(source)
-}
-
-// type ServerResult<T> = Result<T, ServerError>;
-
-// #[derive(Debug, Error)]
-// enum ServerError {
-//     #[error(transparent)]
-//     Other(#[from] Error),
-// }
-
-// impl IntoResponse for ServerError {
-//     type Body = Full<Bytes>;
-//     type BodyError = Infallible;
-
-//     fn into_response(self) -> Response<Self::Body> {
-//         use ServerError::*;
-//         let (status_code, message) = match self {
-//             Other(error) => {
-//                 (StatusCode::INTERNAL_SERVER_ERROR, format!("{:#}", &error))
-//             }
-//         };
-//         let body = json!({
-//             "statusCode": status_code.as_u16(),
-//             "errors": [{ "message": message }]
-//         });
-//         let body = JsonResponse(body);
-//         (status_code, body).into_response()
-//     }
-// }

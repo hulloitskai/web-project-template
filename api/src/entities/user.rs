@@ -4,6 +4,7 @@ pub type UserId = EntityId<User>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Object)]
 pub struct User {
+    pub handle: Handle,
     pub name: String,
     pub email: Email,
     pub phone: Phone,

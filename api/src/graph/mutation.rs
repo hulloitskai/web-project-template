@@ -1,5 +1,16 @@
 use super::*;
 
-use graphql::EmptyMutation;
+#[derive(Debug, Clone, Copy, MergedObject)]
+pub struct Mutation(TestMutation);
 
-pub type Mutation = EmptyMutation;
+impl Mutation {
+    pub fn new() -> Self {
+        Self(TestMutation)
+    }
+}
+
+impl Default for Mutation {
+    fn default() -> Self {
+        Self::new()
+    }
+}

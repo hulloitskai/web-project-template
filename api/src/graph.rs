@@ -1,26 +1,24 @@
-mod query;
-pub use query::*;
-
 mod mutation;
-pub use mutation::*;
-
+mod query;
 mod subscription;
+
+pub use mutation::*;
+pub use query::*;
 pub use subscription::*;
 
 mod build;
-use build::*;
-
-// mod date;
-// use date::*
-
 mod date_time;
-use date_time::*;
-
 mod id;
-use id::*;
-
+mod test;
 mod user;
+// mod date;
+
+use build::*;
+use date_time::*;
+use id::*;
+use test::*;
 use user::*;
+// use date::*
 
 use super::*;
 
@@ -44,22 +42,21 @@ use graphql::{MergedSubscription, Subscription, SubscriptionType};
 use graphql::{Scalar, ScalarType};
 use graphql::{Union, UnionType};
 
-#[async_trait]
-pub(super) trait ContextExt {
+trait ContextExt {
     fn services(&self) -> Services;
 
-    async fn transact<F, T, U>(&self, f: F) -> FieldResult<T>
-    where
-        F: Send,
-        F: FnOnce(EntityContext) -> U,
-        T: Send,
-        U: Send,
-        U: Future<Output = Result<T>>,
-    {
-        let services = self.services();
-        let ctx = EntityContext::new(services);
-        ctx.transact(f).await.into_field_result()
-    }
+    // async fn transact<F, T, U>(&self, f: F) -> FieldResult<T>
+    // where
+    //     F: Send,
+    //     F: FnOnce(EntityContext) -> U,
+    //     T: Send,
+    //     U: Send,
+    //     U: Future<Output = Result<T>>,
+    // {
+    //     let services = self.services();
+    //     let ctx = EntityContext::new(services);
+    //     ctx.transact(f).await.into_field_result()
+    // }
 }
 
 impl<'a> ContextExt for Context<'a> {

@@ -1,15 +1,15 @@
 #![allow(unused_imports)]
 
 mod build;
-pub use build::*;
-
 mod email;
-pub use email::*;
-
+mod handle;
 mod phone;
-pub use phone::*;
-
 mod user;
+
+pub use build::*;
+pub use email::*;
+pub use handle::*;
+pub use phone::*;
 pub use user::*;
 
 use super::*;
@@ -18,6 +18,7 @@ use services::Services;
 
 pub type Context<T = Services> = EntityContext<T>;
 
+use entrust::Record;
 use entrust::{AggregateOneQuery, AggregateQuery, MaybeAggregateOneQuery};
 use entrust::{Comparison, SortingDirection};
 use entrust::{EmptyConditions, EntityConditions};
